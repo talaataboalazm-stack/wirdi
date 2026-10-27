@@ -25,16 +25,23 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Install packages
+        run: npm install
+
       - name: Prepare web files
         run: |
           mkdir -p www/sounds
           cp index.html www/
           cp *.mp3 www/sounds/
+          npx esbuild native.js --bundle --format=iife --outfile=www/native.js
 
-      - name: Install and create Android project
+      - name: Create Android project
         run: |
-          npm install
           npx cap add android
+          mkdir -p android/app/src/main/res/raw
+          for f in *.mp3; do b="${f%.mp3}"; cp "$f" "android/app/src/main/res/raw/${b//-/_}.mp3"; done
+          cp tone_*.wav android/app/src/main/res/raw/
+          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n</manifest>#' android/app/src/main/AndroidManifest.xml
           npx cap sync android
 
       - name: Build debug APK and release AAB
