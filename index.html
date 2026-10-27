@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script src="native.js"></script>
 <title>وردي</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -170,6 +171,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&am
 function pad(n){return (n<10?'0':'')+n}
 
 /* ---------- data ---------- */
+var WN=window.WirdiNative||null;var NATIVE=!!(WN&&WN.isNative);
 var PR=['fajr','dhuhr','asr','maghrib','isha'];
 var PN={fajr:'الفجر',sunrise:'الشروق',dhuhr:'الظهر',asr:'العصر',maghrib:'المغرب',isha:'العشاء'};
 var DEVTZ=(function(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Riyadh'}catch(e){return 'Asia/Riyadh'}})();
@@ -255,7 +257,7 @@ var DEF={city:'riyadh',custom:{lat:24.7136,lng:46.6753,tz:''},method:'ummqura',a
  pre:{on:false,min:10,sound:'tone:chime'},
  morning:{on:true,time:'05:30',sound:'tone:chime'},evening:{on:true,time:'17:00',sound:'tone:chime'},wird:{on:false,time:'21:00',sound:'tone:chime'},
  quiet:{on:false,from:'23:00',to:'05:00',adhan:false},
- quran:{page:1,perDay:4,khatmas:0},goals:{tasbih:100,istighfar:100,salawat:100},daily:{},fired:[]};
+ quran:{page:1,perDay:4,khatmas:0},goals:{tasbih:100,istighfar:100,salawat:100},daily:{},fired:[],nativeOn:false,nativeAsked:false};
 function merge(a,b){for(var k in b){if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==='object')merge(a[k],b[k]);else a[k]=b[k]}return a}
 var S=(function(){var d=JSON.parse(JSON.stringify(DEF));try{var r=localStorage.getItem(LS);if(r)merge(d,JSON.parse(r))}catch(e){}return d})();
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
@@ -430,14 +432,14 @@ function vHome(){
   var html='<section class="panel">';
   html+=T.ok?'<div class="next"><div class="lbl">الصلاة القادمة</div><div class="row"><div><div class="nm">'+PN[N.p]+'</div><div class="at">'+clock(N.t.min)+'</div></div><div class="cd" id="cd">'+fmtCd(N.t.ms-Date.now())+'</div></div></div>':'<div class="next"><div class="nm">تعذّر حساب المواقيت</div><div class="lbl">راجع إحداثيات الموقع في تبويب الصلاة.</div></div>';
   if(T.ok)html+='<div class="strip">'+PR.map(function(p){return '<div class="'+(p===N.p?'on':'')+'"><b>'+PN[p]+'</b>'+clock(T[p].min).replace(' ','&nbsp;')+'</div>'}).join('')+'</div>';
-  html+='<div class="chips"><span class="chip ok">التنبيهات تعمل والصفحة مفتوحة</span>'+(ready?'<span class="chip ok">الصوت مفعّل</span>':'<button class="chip" data-act="unlock">اضغط لتفعيل الصوت</button>')+'</div>';
+  html+='<div class="chips">'+(NATIVE?(S.nativeOn?'<span class="chip ok">تنبيهات الخلفية مفعّلة</span>':'<button class="chip" data-act="gotab" data-tab="alerts">فعّل تنبيهات الخلفية</button>'):'<span class="chip ok">التنبيهات تعمل والصفحة مفتوحة</span>')+(ready?'<span class="chip ok">الصوت مفعّل</span>':'<button class="chip" data-act="unlock">اضغط لتفعيل الصوت</button>')+'</div>';
   html+='<div><div class="sec-h"><h2>يومك</h2><span class="hint">كل ما تيسّر خير</span></div><div class="list">';
   html+='<button class="item" data-act="goset" data-set="morning"><div class="grow"><div class="t">أذكار الصباح '+(mWin?'<span class="pill">وقتها الآن</span>':'')+'</div><div class="s">'+ar(mc)+' من '+ar(mt)+'</div>'+progressBar(mc,mt)+'</div></button>';
   html+='<button class="item" data-act="goset" data-set="evening"><div class="grow"><div class="t">أذكار المساء '+(eWin?'<span class="pill">وقتها الآن</span>':'')+'</div><div class="s">'+ar(ec)+' من '+ar(et)+'</div>'+progressBar(ec,et)+'</div></button>';
   html+='<button class="item" data-act="gotab" data-tab="wird"><div class="grow"><div class="t">الورد القرآني</div><div class="s">الليلة صفحة '+ar(q.page)+' · قرأت اليوم '+ar(pages)+' من '+ar(q.perDay)+' صفحات</div>'+progressBar(pages,q.perDay)+'</div></button>';
   var c=d.cnt||{};
   html+='<button class="item" data-act="gotab" data-tab="wird"><div class="grow"><div class="t">التسبيح والاستغفار</div><div class="s">تسبيح '+ar(c.tasbih||0)+' · استغفار '+ar(c.istighfar||0)+' · صلاة على النبي '+ar(c.salawat||0)+'</div></div></button>';
-  html+='</div></div><p class="foot">يعمل التنبيه ما دامت هذه الصفحة مفتوحة على جهازك. يُفضَّل إبقاء الشاشة مضاءة من تبويب التنبيهات.</p></section>';
+  html+='</div></div><p class="foot">'+(NATIVE?'يرنّ الأذان في وقته حتى والتطبيق مغلق. افتح التطبيق مرة كل أسبوعين ليتجدد الجدول.':'يعمل التنبيه ما دامت هذه الصفحة مفتوحة على جهازك. يُفضَّل إبقاء الشاشة مضاءة من تبويب التنبيهات.')+'</p></section>';
   return html.replace('الليلة صفحة','الصفحة الحالية');
 }
 
@@ -490,7 +492,7 @@ function vWird(){
 }
 
 function vAlerts(){
-  var h='<section class="panel"><div class="block"><h2>صوت الأذان لكل صلاة</h2><p class="hint">اختر أذان المسجد أو الشيخ الذي تحبه لكل صلاة، ويمكن أن يكون أذان الفجر بصوت مختلف.</p>';
+  var h='<section class="panel">'+nativeBlock()+'<div class="block'+(NATIVE?' rule':'')+'"><h2>صوت الأذان لكل صلاة</h2><p class="hint">اختر أذان المسجد أو الشيخ الذي تحبه لكل صلاة، ويمكن أن يكون أذان الفجر بصوت مختلف.</p>';
   PR.forEach(function(p){h+=soundRow('alerts.'+p,PN[p],S.alerts[p])});
   h+='</div><div class="block rule"><h2>التنبيه قبل الصلاة</h2><label class="switch"><span>فعّل التنبيه المسبق</span><input type="checkbox" data-path="pre.on"'+(S.pre.on?' checked':'')+'></label>';
   h+='<div class="field"><label for="premin">قبل الصلاة بـ</label><select id="premin" data-path="pre.min" data-num>'+[5,10,15,20,30].map(function(m){return '<option value="'+m+'"'+(+S.pre.min===m?' selected':'')+'>'+ar(m)+' دقيقة</option>'}).join('')+'</select></div>'+soundRow('pre.sound','الصوت',S.pre.sound)+'</div>';
@@ -525,9 +527,9 @@ function go(t){tab=t;render(false)}
 
 /* ---------- alerts ---------- */
 var pendingSound=null;
-function inQuiet(){
+function inQuiet(mm){
   if(!S.quiet.on)return false;
-  var m=nowParts().min,f=toMin(S.quiet.from),t=toMin(S.quiet.to);
+  var m=(mm==null?nowParts().min:(((mm%1440)+1440)%1440)),f=toMin(S.quiet.from),t=toMin(S.quiet.to);
   return f<=t?(m>=f&&m<t):(m>=f||m<t);
 }
 function showAlert(title,body,goTab,goSet){
@@ -547,7 +549,7 @@ function fire(ev){
   else if(ev.type==='evening'){snd=S.evening.sound;title='وقت أذكار المساء';body='اختم يومك بذكر الله';gt='adhkar';gs='evening'}
   else{snd=S.wird.sound;title='وقت وردك القرآني';body='الصفحة '+ar(S.quran.page);gt='wird'}
   showAlert(title,body,gt,gs);buzz([200,100,200]);
-  if(snd&&snd!=='none'){pendingSound=snd;play(snd).then(function(ok){if(!ok&&snd!=='none'&&ctx&&ctx.state!=='running'){var a=$('#alertsnd');if(a)a.innerHTML='<button class="btn small" data-act="replay">اضغط لتشغيل الصوت</button>'}})}
+  if(snd&&snd!=='none'&&!(NATIVE&&S.nativeOn)){pendingSound=snd;play(snd).then(function(ok){if(!ok&&snd!=='none'&&ctx&&ctx.state!=='running'){var a=$('#alertsnd');if(a)a.innerHTML='<button class="btn small" data-act="replay">اضغط لتشغيل الصوت</button>'}})}
 }
 function events(){
   var ev=[];
@@ -585,15 +587,97 @@ function applyWake(){
 }
 function applyLarge(){document.documentElement.style.setProperty('--scale',S.large?'1.22':'1')}
 
+/* ---------- native (Android) background alerts ---------- */
+var NSOUNDS={'tone:chime':'tone_chime','tone:bell':'tone_bell','tone:dawn':'tone_dawn','pre:makkah-1':'makkah_1','pre:makkah-2':'makkah_2','pre:makkah-3':'makkah_3','pre:aqsa-1':'aqsa_1','pre:aqsa-2':'aqsa_2'};
+var NWAV={tone_chime:1,tone_bell:1,tone_dawn:1};
+var nTimer=null;
+function nChan(v){if(!v||v==='none')return 'w_silent';if(v.indexOf('lib:')===0)v='tone:chime';return NSOUNDS[v]?'w_'+NSOUNDS[v]:'w_tone_chime'}
+function nChannels(){
+  var LN=WN.LN,jobs=[LN.createChannel({id:'w_silent',name:'بدون صوت',importance:2,visibility:1})];
+  Object.keys(NSOUNDS).forEach(function(k){var b=NSOUNDS[k];
+    jobs.push(LN.createChannel({id:'w_'+b,name:soundLabel(k),importance:5,visibility:1,vibration:true,sound:b+(NWAV[b]?'.wav':'.mp3')}))});
+  return Promise.all(jobs.map(function(p){return Promise.resolve(p).catch(function(){})}));
+}
+function nAdd(out,base,slot,ms,min,title,body,snd,isAdhan){
+  if(ms<=Date.now()+3000)return;
+  if(isAdhan?(S.quiet.adhan&&inQuiet(min)):inQuiet(min))return;
+  out.push({id:base+slot+1,title:title,body:body,channelId:nChan(snd),schedule:{at:new Date(ms),allowWhileIdle:true}});
+}
+function nPlan(days){
+  var out=[],city=loc().name;
+  for(var o=0;o<days;o++){
+    var T=times(o);if(!T.ok)continue;
+    var base=o*20;
+    PR.forEach(function(p,i){
+      nAdd(out,base,i,T[p].ms,T[p].min,'حان الآن وقت صلاة '+PN[p],clock(T[p].min)+' · '+city,S.alerts[p],true);
+      if(S.pre.on&&S.pre.min>0)nAdd(out,base,5+i,T[p].ms-S.pre.min*60000,T[p].min-S.pre.min,'بقي '+ar(S.pre.min)+' دقيقة على صلاة '+PN[p],'استعد للصلاة',S.pre.sound,false);
+    });
+    [['morning','وقت أذكار الصباح','أذكار قصيرة تبدأ بها يومك'],['evening','وقت أذكار المساء','اختم يومك بذكر الله'],['wird','وقت وردك القرآني','الصفحة '+ar(S.quran.page)]].forEach(function(k,j){
+      if(!S[k[0]].on)return;
+      var mn=toMin(S[k[0]].time);
+      nAdd(out,base,10+j,Date.UTC(T.y,T.m-1,T.d)+(mn-T.tz*60)*60000,mn,k[1],k[2],S[k[0]].sound,false);
+    });
+  }
+  return out;
+}
+function nSchedule(){
+  var LN=WN.LN;
+  return LN.checkPermissions().then(function(p){
+    if(p.display!=='granted'){S.nativeOn=false;save();ui.ns={msg:'لم تُمنح صلاحية الإشعارات. فعّلها من إعدادات الجوال ثم اضغط «فعّل التنبيهات».'};return false}
+    return nChannels().then(function(){return LN.getPending()}).then(function(r){
+      var ids=(r.notifications||[]).map(function(n){return {id:n.id}});
+      return ids.length?LN.cancel({notifications:ids}):null;
+    }).then(function(){
+      var plan=nPlan(21),chain=Promise.resolve();
+      for(var i=0;i<plan.length;i+=40){(function(part){chain=chain.then(function(){return LN.schedule({notifications:part})})})(plan.slice(i,i+40))}
+      return chain.then(function(){S.nativeOn=true;save();ui.ns={msg:'مفعّلة. جُدول '+ar(plan.length)+' تنبيهًا للأسابيع الثلاثة القادمة.'};return true});
+    });
+  }).catch(function(e){ui.ns={msg:'تعذّرت الجدولة: '+((e&&e.message)||e)};return false});
+}
+function nEnable(){
+  var LN=WN.LN;
+  return LN.requestPermissions().then(function(p){
+    if(p.display!=='granted'){S.nativeOn=false;save();ui.ns={msg:'لم تُمنح صلاحية الإشعارات. فعّلها من إعدادات الجوال ثم اضغط «فعّل التنبيهات».'};return false}
+    var chk=LN.checkExactNotificationSetting?LN.checkExactNotificationSetting():Promise.resolve({exact_alarm:'granted'});
+    return chk.then(function(e){
+      if(e&&e.exact_alarm&&e.exact_alarm!=='granted'&&LN.changeExactNotificationSetting){
+        toast('اسمح للتطبيق بالمنبهات والتذكيرات ثم ارجع');
+        return LN.changeExactNotificationSetting().catch(function(){}).then(function(){return nSchedule()});
+      }
+      return nSchedule();
+    });
+  }).catch(function(e){ui.ns={msg:'تعذّر التفعيل: '+((e&&e.message)||e)};return false});
+}
+function nTest(){
+  var LN=WN.LN;
+  nEnable().then(function(ok){
+    if(!ok)return;
+    return nChannels().then(function(){
+      return LN.schedule({notifications:[{id:999999,title:'تنبيه تجريبي',body:'هذا صوت أذان الفجر المختار عندك',channelId:nChan(S.alerts.fajr),schedule:{at:new Date(Date.now()+10000),allowWhileIdle:true}}]});
+    }).then(function(){toast('سيصلك التنبيه بعد ١٠ ثوانٍ. اقفل الشاشة لتجرّب.')});
+  }).catch(function(e){toast('تعذّر التجربة: '+((e&&e.message)||e))});
+}
+function scheduleSoon(){if(!NATIVE||!S.nativeOn)return;clearTimeout(nTimer);nTimer=setTimeout(function(){nSchedule()},900)}
+function nativeBoot(){
+  if(!NATIVE)return;
+  if(!S.nativeAsked){S.nativeAsked=true;save();nEnable().then(function(){render(true)});return}
+  if(S.nativeOn)nSchedule();
+}
+function nativeBlock(){
+  if(!NATIVE)return '';
+  var st=ui.ns?ui.ns.msg:(S.nativeOn?'مفعّلة.':'غير مفعّلة بعد.');
+  return '<div class="block"><h2>التنبيهات في الخلفية</h2><p class="hint">'+esc(st)+'</p><div class="row2" style="flex-wrap:wrap"><button class="btn" data-act="nativeEnable">'+(S.nativeOn?'تحديث الجدول':'فعّل التنبيهات')+'</button><button class="btn ghost" data-act="nativeTest">جرّب بعد ١٠ ثوانٍ</button></div><p class="hint">لضمان وصول الأذان: من إعدادات الجوال ← التطبيقات ← وردي ← البطارية، اختر «بدون قيود»، وفعّل «التشغيل التلقائي» إن وُجد. يتجدد الجدول كلما فتحت التطبيق.</p></div>';
+}
+
 /* ---------- events ---------- */
 document.addEventListener('pointerdown',function(){ensureCtx()},{once:false,passive:true});
-document.addEventListener('visibilitychange',function(){applyWake();tick()});
+document.addEventListener('visibilitychange',function(){applyWake();tick();if(document.visibilityState==='visible')scheduleSoon()});
 
 document.addEventListener('change',function(e){
   var t=e.target,path=t.dataset&&t.dataset.path;if(!path)return;
   var v=t.type==='checkbox'?t.checked:(t.dataset.num!==undefined?+t.value:t.value);
   if(t.dataset.clamp){var r=t.dataset.clamp.split(',').map(Number);if(!isFinite(v))v=r[0];v=Math.max(r[0],Math.min(r[1],Math.round(v)))}
-  setPath(path,v);preloadSelected();
+  setPath(path,v);preloadSelected();scheduleSoon();
   if(path==='city'){if(v!=='custom')S.method=CITIES[v][4];save();fired=new Set(S.fired)}
   if(path==='large')applyLarge();
   if(path==='wake')applyWake();
@@ -632,6 +716,8 @@ document.addEventListener('click',function(e){
     case 'addSound':addSound();break;
     case 'stopSound':stopSound();break;
     case 'replay':ensureCtx().then(function(){play(pendingSound)});break;
+    case 'nativeEnable':nEnable().then(function(){render(true)});break;
+    case 'nativeTest':nTest();break;
     case 'closeAlert':stopSound();$('#alert').hidden=true;document.title='وردي';break;
     case 'openAlert':{stopSound();$('#alert').hidden=true;document.title='وردي';if(t.dataset.set)ui.set=t.dataset.set;go(t.dataset.go);break}
   }
@@ -654,7 +740,7 @@ function addSound(){
 }
 
 /* ---------- boot ---------- */
-applyLarge();head();render(false);applyWake();preloadSelected();
+applyLarge();head();render(false);applyWake();preloadSelected();nativeBoot();
 idbOpen().then(function(db){idb=db;return idbAll()}).then(function(rows){lib=rows;if(tab==='alerts')render(true)});
 setInterval(tick,1000);tick();
 })();
